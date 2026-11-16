@@ -8,7 +8,8 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 const DATA_BASE = "data/";
-const DISPLAY_TZ = "Europe/Berlin";
+// Overridden by the "timezone" field of current.json once it has loaded.
+let DISPLAY_TZ = "Europe/Berlin";
 let currentData = null;
 
 const byId = (id) => document.getElementById(id);
@@ -28,6 +29,22 @@ async function getJson(file) {
   const response = await fetch(`${DATA_BASE}${file}?v=${Date.now()}`, {cache:"no-store"});
   if (!response.ok) throw new Error(`Could not load ${file} (${response.status})`);
   return response.json();
+}
+
+function renderMeta(data) {
+  if (data.timezone) DISPLAY_TZ = data.timezone;
+  byId("display-tz").textContent = DISPLAY_TZ;
+  if (data.repository) {
+    const [owner, repo] = data.repository.split("/");
+    byId("repo-link").href = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+    byId("repo-link").textContent = `${owner} / ${repo}`;
+    document.title = `${repo} · PR Review Analytics`;
+  }
+  // Points at the repository running the workflow, which may differ from the analysed one.
+  if (data.workflow_url) {
+    byId("workflow-link").href = data.workflow_url;
+    byId("workflow-link").classList.remove("hidden");
+  }
 }
 
 function renderKpis(data) {
@@ -98,6 +115,7 @@ async function init() {
   try {
     const [current, history] = await Promise.all([getJson("current.json"), getJson("history.json")]);
     currentData = current;
+    renderMeta(current);
     renderKpis(current);
     if (window.Chart) {
       renderReviewerChart(current);

@@ -26,6 +26,7 @@ import statistics
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from http.client import HTTPException
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -42,6 +43,10 @@ HISTORY_DAYS = 365
 # First-review latency is measured over PRs whose first review happened within
 # this window, whether the PR is still open or already closed/merged.
 LATENCY_WINDOW_DAYS = int(os.getenv("LATENCY_WINDOW_DAYS", "30"))
+# Retries for transient API failures: 2s, 4s, 8s between attempts.
+MAX_ATTEMPTS = 4
+BACKOFF_SECONDS = 2
+MAX_RATE_LIMIT_WAIT_SECONDS = 300
 
 
 class GitHubAPIError(RuntimeError):
@@ -61,14 +66,47 @@ def github_get(path: str, params: dict | None = None):
     if token:
         headers["Authorization"] = f"Bearer {token}"
     req = Request(url, headers=headers)
-    try:
-        with urlopen(req, timeout=30) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise GitHubAPIError(f"GitHub API returned HTTP {exc.code}: {body[:500]}") from exc
-    except URLError as exc:
-        raise GitHubAPIError(f"Could not reach GitHub API: {exc}") from exc
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            with urlopen(req, timeout=30) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            error = GitHubAPIError(f"GitHub API returned HTTP {exc.code} for {path}: {body[:500]}")
+            delay = _retry_delay(exc, attempt)
+            if delay is None or attempt == MAX_ATTEMPTS:
+                raise error from exc
+        except (URLError, OSError, HTTPException) as exc:
+            # Connection resets, timeouts, truncated responses: transient.
+            error = GitHubAPIError(f"Could not reach GitHub API for {path}: {exc}")
+            if attempt == MAX_ATTEMPTS:
+                raise error from exc
+            delay = BACKOFF_SECONDS * 2 ** (attempt - 1)
+        print(f"WARNING: {error} (attempt {attempt}/{MAX_ATTEMPTS}, retrying in {delay:.0f}s)", file=sys.stderr)
+        time.sleep(delay)
+    raise AssertionError("unreachable")
+
+
+def _retry_delay(exc: HTTPError, attempt: int) -> float | None:
+    """Seconds to wait before retrying an HTTP error, or None if it is not retryable."""
+    backoff = BACKOFF_SECONDS * 2 ** (attempt - 1)
+    if exc.code >= 500:
+        return backoff
+    if exc.code not in (403, 429):
+        return None  # 404, 401, 422, ...: retrying will not help.
+    # Rate limits (primary: remaining=0; secondary: Retry-After or 403/429).
+    retry_after = exc.headers.get("Retry-After")
+    if retry_after and retry_after.isdigit():
+        delay = float(retry_after)
+    elif exc.headers.get("X-RateLimit-Remaining") == "0":
+        reset = float(exc.headers.get("X-RateLimit-Reset") or 0)
+        delay = max(1.0, reset - time.time())
+    elif exc.code == 429:
+        delay = max(60.0, backoff)
+    else:
+        return None  # A plain 403 is a permission problem, not a rate limit.
+    # Do not let a run sit idle for a long time; the next scheduled run will catch up.
+    return delay if delay <= MAX_RATE_LIMIT_WAIT_SECONDS else None
 
 
 def iter_pages(path: str, params: dict | None = None):
@@ -247,6 +285,22 @@ def build_summary(prs, latency_samples, generated_at):
     }
 
 
+def workflow_url():
+    """Actions page of the workflow that produced this snapshot, if run in Actions.
+
+    This is the repository *running* the dashboard, which can differ from the
+    analysed repository (PR_ANALYTICS_REPOSITORY).
+    """
+    server = os.getenv("GITHUB_SERVER_URL", "https://github.com")
+    runner_repo = os.getenv("GITHUB_REPOSITORY")
+    # e.g. "owner/repo/.github/workflows/pr-analytics-pages.yml@refs/heads/main"
+    workflow_ref = os.getenv("GITHUB_WORKFLOW_REF", "")
+    if not os.getenv("GITHUB_ACTIONS") or not runner_repo or "/.github/workflows/" not in workflow_ref:
+        return None
+    workflow_file = workflow_ref.split("@", 1)[0].rsplit("/", 1)[-1]
+    return f"{server}/{runner_repo}/actions/workflows/{workflow_file}"
+
+
 def main():
     global OWNER, REPO
     # PR_ANALYTICS_REPOSITORY selects the repository to analyse. GITHUB_REPOSITORY
@@ -292,6 +346,7 @@ def main():
         "repository": f"{OWNER}/{REPO}",
         "generated_at": generated_at,
         "timezone": DISPLAY_TZ,
+        "workflow_url": workflow_url(),
         "open_prs": details,
         "first_review_samples": latency_samples,
         "collection_errors": errors,

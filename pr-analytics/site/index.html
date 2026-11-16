@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Qrisp · PR Review Analytics</title>
+  <title>PR Review Analytics</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
   <script src="app.js" defer></script>
@@ -14,12 +14,12 @@
     <div>
       <p class="eyebrow">GITHUB REPOSITORY ANALYTICS</p>
       <h1>Pull request reviews</h1>
-      <p class="muted"><a href="https://github.com/eclipse-qrisp/Qrisp">eclipse-qrisp / Qrisp</a></p>
+      <p class="muted"><a id="repo-link" href="#">Loading…</a></p>
     </div>
     <div class="freshness">
       <span class="dot"></span>
       <span id="last-updated">Loading data…</span>
-      <a class="button" href="https://github.com/eclipse-qrisp/Qrisp/actions/workflows/pr-analytics-pages.yml">Run / view workflow</a>
+      <a id="workflow-link" class="button hidden" href="#">Run / view workflow</a>
     </div>
   </header>
 
@@ -67,7 +67,7 @@
         <li><b>Visibility:</b> this Pages site and its JSON data are public. Only publish information you are comfortable exposing.</li>
       </ul>
     </section>
-    <footer>Qrisp PR Analytics · Data from the GitHub REST API · Display timezone: Europe/Berlin</footer>
+    <footer>PR Review Analytics · Data from the GitHub REST API · Display timezone: <span id="display-tz">Europe/Berlin</span></footer>
   </main>
 </body>
 </html>
