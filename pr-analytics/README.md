@@ -6,7 +6,7 @@ A static GitHub Pages dashboard for `eclipse-qrisp/Qrisp`. It collects public PR
 
 > **Eclipse projects:** `eclipse-qrisp` is an Eclipse Foundation organization. Repository settings such as GitHub Pages are usually managed centrally by the Eclipse Foundation (through its Otterdog configuration), not through the Settings UI. Agree with the Qrisp maintainers first, then ask them or the Eclipse webmaster to enable Pages with **GitHub Actions** as the source. Also check that `eclipse-qrisp.github.io/Qrisp/` is not already used for another site; deploying would replace it.
 
-Copy the contents of this project into the root of the target repository (preserve the `.github` directory). Then:
+Copy `pr-analytics/` and `.github/workflows/pr-analytics-pages.yml` into the target repository, keeping their paths. Do not copy the top-level `README.md`, `LICENSE` or `.gitignore`; the target repository has its own. If its `.gitignore` does not already cover it, add `pr-analytics/site/data/`. Then:
 
 1. Make sure **Settings → Pages → Build and deployment → Source** is set to **GitHub Actions** (or have it set through Otterdog, see above).
 2. Open **Actions → PR analytics dashboard → Run workflow** to perform the first collection and deployment.
