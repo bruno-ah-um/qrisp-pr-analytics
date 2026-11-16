@@ -82,7 +82,7 @@ function renderTrend(history) {
       {label:"Open PRs",data:points.map(p=>p.open_prs),borderColor:"#4779c7",backgroundColor:"#4779c722",tension:.25},
       {label:"Awaiting first review",data:points.map(p=>p.awaiting_first_review),borderColor:"#e29a3b",backgroundColor:"#e29a3b22",tension:.25}
     ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:false,grace:"10%",ticks:{precision:0}}}}
   });
 }
 

@@ -272,6 +272,8 @@ def build_summary(prs, latency_samples, generated_at):
 
     return {
         "generated_at": generated_at,
+        # Lets later runs discard entries collected for a different repository.
+        "repository": f"{OWNER}/{REPO}",
         "open_prs": open_count,
         "awaiting_first_review": len(awaiting_first),
         "draft_prs": sum(1 for p in prs if p["draft"]),
@@ -364,6 +366,12 @@ def main():
             raise SystemExit(f"Could not read {HISTORY_FILE}: {exc}") from exc
         if not isinstance(history, list):
             raise SystemExit(f"{HISTORY_FILE} must contain a JSON list.")
+    # Drop entries collected for another repository, e.g. after changing
+    # PR_ANALYTICS_REPOSITORY. Entries from before this field existed are kept.
+    dropped = [item for item in history if item.get("repository") not in (None, snapshot["repository"])]
+    if dropped:
+        print(f"Dropping {len(dropped)} history entries collected for another repository.")
+        history = [item for item in history if item not in dropped]
     history.append(snapshot["summary"])
     cutoff = datetime.now(timezone.utc).timestamp() - HISTORY_DAYS * 86400
     history = [

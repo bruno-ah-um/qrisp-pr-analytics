@@ -79,7 +79,7 @@ Output is written to `pr-analytics/site/data/`, which is git-ignored. To preview
 ## Troubleshooting
 
 - **"Could not fetch …/data/history.json":** the deployed site was unreachable. Re-run the workflow; nothing was deployed, so no history was lost.
-- **"Deployed history.json is not a JSON list":** the live history is corrupt. Inspect it and repair it manually. Starting over means deploying once with the fetch step skipped.
+- **"Deployed history.json is not a JSON list":** the live history is corrupt. Inspect it and repair it manually, or start over with **Run workflow → Reset history**.
 - **Pages deployment fails:** ensure Settings → Pages → Source is set to GitHub Actions.
 - **No data yet:** run the workflow manually from Actions and inspect its logs.
 - **API rate limit:** keep the Actions-provided `GITHUB_TOKEN`; the collector uses pagination and makes one additional request per open PR and per PR closed within the latency window.

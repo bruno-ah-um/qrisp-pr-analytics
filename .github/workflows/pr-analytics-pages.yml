@@ -11,6 +11,11 @@ on:
     # Runs four times daily. The dashboard displays timestamps in Europe/Berlin.
     - cron: "0 0,6,12,18 * * *"
   workflow_dispatch:
+    inputs:
+      reset_history:
+        description: "Discard the deployed history and start a new one (cannot be undone)"
+        type: boolean
+        default: false
 
 # No contents: write. Snapshot history is never committed to the repository;
 # it is carried forward from the currently deployed Pages site instead.
@@ -40,6 +45,7 @@ jobs:
         uses: actions/configure-pages@v6
 
       - name: Fetch previous history from the deployed site
+        if: ${{ !inputs.reset_history }}
         env:
           HISTORY_URL: ${{ steps.pages.outputs.base_url }}/data/history.json
         run: |
