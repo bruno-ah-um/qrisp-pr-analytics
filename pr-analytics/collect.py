@@ -249,9 +249,12 @@ def build_summary(prs, latency_samples, generated_at):
 
 def main():
     global OWNER, REPO
-    full_name = os.getenv("GITHUB_REPOSITORY", "eclipse-qrisp/Qrisp")
+    # PR_ANALYTICS_REPOSITORY selects the repository to analyse. GITHUB_REPOSITORY
+    # cannot be used for that in Actions: the runner always sets it to the
+    # repository running the workflow and ignores overrides.
+    full_name = os.getenv("PR_ANALYTICS_REPOSITORY") or os.getenv("GITHUB_REPOSITORY") or "eclipse-qrisp/Qrisp"
     if "/" not in full_name:
-        raise SystemExit("GITHUB_REPOSITORY must be in owner/repository format.")
+        raise SystemExit("PR_ANALYTICS_REPOSITORY / GITHUB_REPOSITORY must be in owner/repository format.")
     OWNER, REPO = full_name.split("/", 1)
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)

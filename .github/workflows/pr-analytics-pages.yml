@@ -73,7 +73,8 @@ jobs:
           # Repository to analyse. Defaults to the repository running this workflow;
           # set the Actions variable PR_ANALYTICS_REPOSITORY (e.g. eclipse-qrisp/Qrisp)
           # to analyse another public repository, for example when testing from a fork.
-          GITHUB_REPOSITORY: ${{ vars.PR_ANALYTICS_REPOSITORY || github.repository }}
+          # (GITHUB_REPOSITORY cannot be overridden; the runner always sets its own value.)
+          PR_ANALYTICS_REPOSITORY: ${{ vars.PR_ANALYTICS_REPOSITORY || github.repository }}
         run: python pr-analytics/collect.py
 
       - name: Upload GitHub Pages artifact

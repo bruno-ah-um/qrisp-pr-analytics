@@ -69,7 +69,7 @@ It never pushes to any branch.
 From the repository root:
 
 ```bash
-GITHUB_REPOSITORY=eclipse-qrisp/Qrisp GITHUB_TOKEN=YOUR_TOKEN python pr-analytics/collect.py
+PR_ANALYTICS_REPOSITORY=eclipse-qrisp/Qrisp GITHUB_TOKEN=YOUR_TOKEN python pr-analytics/collect.py
 ```
 
 The token is optional for public data but recommended for higher API rate limits. Do not put a token in source files or the Pages site.
