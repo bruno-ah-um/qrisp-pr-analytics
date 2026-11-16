@@ -287,22 +287,6 @@ def build_summary(prs, latency_samples, generated_at):
     }
 
 
-def workflow_url():
-    """Actions page of the workflow that produced this snapshot, if run in Actions.
-
-    This is the repository *running* the dashboard, which can differ from the
-    analysed repository (PR_ANALYTICS_REPOSITORY).
-    """
-    server = os.getenv("GITHUB_SERVER_URL", "https://github.com")
-    runner_repo = os.getenv("GITHUB_REPOSITORY")
-    # e.g. "owner/repo/.github/workflows/pr-analytics-pages.yml@refs/heads/main"
-    workflow_ref = os.getenv("GITHUB_WORKFLOW_REF", "")
-    if not os.getenv("GITHUB_ACTIONS") or not runner_repo or "/.github/workflows/" not in workflow_ref:
-        return None
-    workflow_file = workflow_ref.split("@", 1)[0].rsplit("/", 1)[-1]
-    return f"{server}/{runner_repo}/actions/workflows/{workflow_file}"
-
-
 def main():
     global OWNER, REPO
     # PR_ANALYTICS_REPOSITORY selects the repository to analyse. GITHUB_REPOSITORY
@@ -348,7 +332,6 @@ def main():
         "repository": f"{OWNER}/{REPO}",
         "generated_at": generated_at,
         "timezone": DISPLAY_TZ,
-        "workflow_url": workflow_url(),
         "open_prs": details,
         "first_review_samples": latency_samples,
         "collection_errors": errors,

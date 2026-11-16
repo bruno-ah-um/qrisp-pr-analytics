@@ -40,11 +40,6 @@ function renderMeta(data) {
     byId("repo-link").textContent = `${owner} / ${repo}`;
     document.title = `${repo} · PR Review Analytics`;
   }
-  // Points at the repository running the workflow, which may differ from the analysed one.
-  if (data.workflow_url) {
-    byId("workflow-link").href = data.workflow_url;
-    byId("workflow-link").classList.remove("hidden");
-  }
 }
 
 function renderKpis(data) {
