@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Qrisp · PR Review Analytics</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">GITHUB REPOSITORY ANALYTICS</p>
+      <h1>Pull request reviews</h1>
+      <p class="muted"><a href="https://github.com/eclipse-qrisp/Qrisp">eclipse-qrisp / Qrisp</a></p>
+    </div>
+    <div class="freshness">
+      <span class="dot"></span>
+      <span id="last-updated">Loading data…</span>
+      <a class="button" href="https://github.com/eclipse-qrisp/Qrisp/actions/workflows/pr-analytics-pages.yml">Run / view workflow</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="kpis" aria-label="Current metrics">
+      <article class="kpi"><span>Open PRs</span><strong id="open-prs">—</strong><small>Currently open</small></article>
+      <article class="kpi"><span>Awaiting first review</span><strong id="awaiting">—</strong><small>Non-draft PRs</small></article>
+      <article class="kpi"><span>Pending review requests</span><strong id="pending-requests">—</strong><small>Outstanding user requests</small></article>
+      <article class="kpi"><span>Median first review</span><strong id="median-review">—</strong><small id="median-review-note">Human reviews, recent PRs</small></article>
+    </section>
+
+    <section class="grid-two">
+      <article class="panel">
+        <div class="panel-heading"><div><h2>Reviewer backlog</h2><p>Outstanding review requests by person</p></div></div>
+        <div class="chart-wrap"><canvas id="reviewer-chart" aria-label="Reviewer backlog chart"></canvas></div>
+        <div id="reviewer-empty" class="empty hidden">No pending review requests in the latest snapshot.</div>
+      </article>
+      <article class="panel">
+        <div class="panel-heading"><div><h2>Backlog trend</h2><p>Open PRs and PRs awaiting first review</p></div></div>
+        <div class="chart-wrap"><canvas id="trend-chart" aria-label="Backlog trend chart"></canvas></div>
+        <div id="trend-empty" class="empty hidden">Historical data will appear after scheduled collections.</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading split">
+        <div><h2>Open pull requests</h2><p>Current requested reviewers, actual reviewers and age</p></div>
+        <input id="search" type="search" placeholder="Filter PRs or reviewers…" aria-label="Filter pull requests">
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Pull request</th><th>Author</th><th>Pending requests</th><th>Reviewed by</th><th>Age</th><th>First review</th><th>Reviews</th></tr></thead>
+          <tbody id="pr-rows"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel note">
+      <h2>Metric definitions & limitations</h2>
+      <ul>
+        <li><b>Pending requests:</b> individual reviewers who are currently requested on a non-draft PR and have not reviewed since. Once they submit a review, GitHub removes the request, unless it is made again. Team requests are shown in the PR table but are not expanded into individual team members.</li>
+        <li><b>First review time:</b> time from PR creation to the first submitted review by a human other than the PR author. Bot reviews (e.g. CodeRabbit) are ignored. The median covers every PR, open, merged or closed, whose first review happened in the last 30 days. This is not necessarily the time from review-request creation.</li>
+        <li><b>Reviewer backlog:</b> counts currently outstanding requests, not all PRs a person could optionally review.</li>
+        <li><b>History:</b> snapshots are collected four times daily. Historical charts begin filling after the workflow is enabled.</li>
+        <li><b>Visibility:</b> this Pages site and its JSON data are public. Only publish information you are comfortable exposing.</li>
+      </ul>
+    </section>
+    <footer>Qrisp PR Analytics · Data from the GitHub REST API · Display timezone: Europe/Berlin</footer>
+  </main>
+</body>
+</html>

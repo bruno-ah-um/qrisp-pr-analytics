@@ -1,0 +1,86 @@
+name: PR analytics dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pr-analytics-pages.yml"
+      - "pr-analytics/**"
+  schedule:
+    # GitHub Actions cron is UTC (not Europe/Berlin aware).
+    # Runs four times daily. The dashboard displays timestamps in Europe/Berlin.
+    - cron: "0 0,6,12,18 * * *"
+  workflow_dispatch:
+
+# No contents: write. Snapshot history is never committed to the repository;
+# it is carried forward from the currently deployed Pages site instead.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: qrisp-pr-analytics-pages
+  cancel-in-progress: false
+
+jobs:
+  collect-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Fetch previous history from the deployed site
+        env:
+          HISTORY_URL: ${{ steps.pages.outputs.base_url }}/data/history.json
+        run: |
+          mkdir -p pr-analytics/site/data
+          target=pr-analytics/site/data/history.json
+          status=$(curl -sS -L --retry 3 --retry-all-errors -o "$target.tmp" -w '%{http_code}' "$HISTORY_URL" || echo "000")
+          if [ "$status" = "200" ]; then
+            # Refuse to continue with anything that is not a JSON list, so a bad
+            # response can never silently replace the accumulated history.
+            python -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d, list) else 1)' "$target.tmp" \
+              || { echo "::error::Deployed history.json is not a JSON list"; exit 1; }
+            mv "$target.tmp" "$target"
+            echo "Loaded previous history from $HISTORY_URL"
+          elif [ "$status" = "404" ]; then
+            rm -f "$target.tmp"
+            echo "No deployed history yet (404); starting a new history."
+          else
+            # Network or server error: fail rather than deploy a truncated history.
+            echo "::error::Could not fetch $HISTORY_URL (HTTP $status)"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Collect PR analytics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Repository to analyse. Defaults to the repository running this workflow;
+          # set the Actions variable PR_ANALYTICS_REPOSITORY (e.g. eclipse-qrisp/Qrisp)
+          # to analyse another public repository, for example when testing from a fork.
+          GITHUB_REPOSITORY: ${{ vars.PR_ANALYTICS_REPOSITORY || github.repository }}
+        run: python pr-analytics/collect.py
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pr-analytics/site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
